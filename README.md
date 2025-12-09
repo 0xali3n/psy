@@ -4,6 +4,9 @@
 
 > **Note:** This project is an MVP prototype. ZK proof generation and Poseidon2 hashing are simulated with drop-in replacements ready for production Psy Protocol integration.
 
+![Main Landing Page](docs/img/Main_Landing_Page.png)
+_ZeroTrace main interface - Clean, modern messaging UI with identity management_
+
 ---
 
 ## 🚀 Installation & Setup
@@ -29,12 +32,37 @@ cargo run --bin server
 
 Open browser: **http://127.0.0.1:8080**
 
+![Server Terminal](docs/img/terminal.png)
+_Server running on http://127.0.0.1:8080 - Actix-web backend with API endpoints_
+
 ### Quick Demo
 
+#### Step 1: Create Identity
+
+![New Identity Creation](docs/img/New_Identity_creation.png)
+_Creating a new ED25519 identity - Identity hash and public key generated_
+
 1. **Browser A:** Create identity, copy hash
+
+#### Step 2: Connect Users
+
+![Connect to Other User](docs/img/Connect%20to%20other.png)
+_Connecting two users via QR code or identity hash - Secure peer-to-peer connection_
+
 2. **Browser B:** Create identity, connect using Browser A's hash
+
+#### Step 3: Send Encrypted Messages
+
+![Chatting Interface](docs/img/Chatting.png)
+_End-to-end encrypted messaging with ZK proof status indicators_
+
 3. **Send Message:** Type message, verify ZK proof status
 4. **Verify:** Check console (F12) and server terminal
+
+#### Step 4: View Settings & Technical Details
+
+![Settings Popup](docs/img/Settings_popup.png)
+_User settings and technical details - Identity keys, CSTATE root, and proof information_
 
 ## ✅ How This Meets Hackathon Requirements
 
