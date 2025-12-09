@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZeroTrace - Secure Messaging</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script>
+      window.addEventListener("load", () => {
+        if (typeof QRCode === "undefined") {
+          console.error("QRCode library failed to load");
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Sidebar (Desktop) / Hidden on Mobile -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <h2>ZeroTrace</h2>
+          <div class="header-actions">
+            <button class="btn-icon" id="refresh-btn" title="Refresh">↻</button>
+            <button class="btn-icon" id="new-chat-btn" title="New Chat">+</button>
+          </div>
+        </div>
+
+        <!-- Identity Section -->
+        <div class="sidebar-section">
+          <div id="identity-status" class="identity-status">
+            <div class="identity-status-content">
+              <p>No identity created</p>
+              <p class="identity-hint">Create an identity to start messaging</p>
+            </div>
+            <button id="create-identity-btn" class="btn btn-primary btn-small">
+              ✨ Create Identity
+            </button>
+          </div>
+          <div id="identity-info-sidebar" class="hidden">
+            <div class="identity-avatar-small" id="avatar-sidebar"></div>
+            <div class="identity-text">
+              <p class="identity-name">You</p>
+              <p class="identity-hash-small" id="hash-sidebar"></p>
+            </div>
+            <button class="btn-icon-small" id="profile-btn" title="Settings & Profile">⚙️</button>
+          </div>
+        </div>
+
+        <!-- Conversations List -->
+        <div class="conversations-list" id="conversations-list">
+          <p class="empty-conversations">No conversations yet</p>
+        </div>
+      </aside>
+
+      <!-- Main Chat Area -->
+      <main class="chat-area">
+        <!-- Welcome Screen / No Chat Selected -->
+        <div id="welcome-screen" class="welcome-screen">
+          <div class="welcome-content">
+            <h1>ZeroTrace</h1>
+            <p>End-to-End Encrypted Messaging</p>
+            <p class="welcome-subtitle">Create an identity to get started</p>
+          </div>
+        </div>
+
+        <!-- Active Chat View -->
+        <div id="active-chat" class="active-chat hidden">
+          <!-- Chat Header -->
+          <div class="chat-header">
+            <button class="btn-icon mobile-only" id="back-btn">←</button>
+            <div class="chat-header-info">
+              <div class="chat-avatar" id="chat-avatar">👤</div>
+              <div>
+                <h3 id="chat-title">Contact</h3>
+                <p class="chat-status" id="chat-status">Online</p>
+              </div>
+            </div>
+            <button class="btn-icon" id="chat-menu-btn">⋯</button>
+          </div>
+
+          <!-- Messages Container -->
+          <div class="messages-container" id="messages-container">
+            <!-- Technical Info Background -->
+            <div class="tech-background" id="tech-background">
+              <div class="tech-info-card-bg">
+                <div class="tech-header-bg">
+                  <span>🔐 Security Status</span>
+                  <button class="tech-toggle" onclick="toggleTechOverlay()">−</button>
+                </div>
+                <div class="tech-content-bg">
+                  <div class="tech-item-bg">
+                    <span class="tech-label-bg">Encryption:</span>
+                    <span class="tech-value-bg success">XChaCha20-Poly1305</span>
+                  </div>
+                  <div class="tech-item-bg">
+                    <span class="tech-label-bg">ZK Proof:</span>
+                    <span class="tech-value-bg success" id="tech-zk-status">Psy Protocol CFC</span>
+                  </div>
+                  <div class="tech-item-bg">
+                    <span class="tech-label-bg">Key Exchange:</span>
+                    <span class="tech-value-bg">ED25519</span>
+                  </div>
+                  <div class="tech-item-bg">
+                    <span class="tech-label-bg">State:</span>
+                    <span class="tech-value-bg" id="tech-state-status">Merkle Tree</span>
+                  </div>
+                  <div class="tech-item-bg">
+                    <span class="tech-label-bg">Commitment:</span>
+                    <span class="tech-value-bg">Poseidon2</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="messages-list" id="messages-list">
+              <p class="empty-state">
+                No messages yet. Start the conversation!
+              </p>
+            </div>
+          </div>
+
+          <!-- Message Input -->
+          <div class="message-input-area">
+            <div id="proof-status" class="proof-status hidden"></div>
+            <div class="input-wrapper">
+              <textarea
+                id="message-input"
+                placeholder="Type a message..."
+                rows="1"
+              ></textarea>
+              <button id="send-btn" class="btn-send">Send</button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- New Chat Modal -->
+      <div id="new-chat-modal" class="modal hidden">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>New Chat</h3>
+            <button class="btn-icon" onclick="closeNewChatModal()">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="connection-method">
+              <label>Connect to Identity Hash</label>
+              <input
+                type="text"
+                id="recipient-identity"
+                placeholder="Paste identity hash"
+              />
+              <button id="connect-btn" class="btn btn-primary">Connect</button>
+            </div>
+            <div class="divider">OR</div>
+            <div class="qr-section">
+              <h4>Share Your QR Code</h4>
+              <div class="qr-container">
+                <canvas id="qr-code"></canvas>
+              </div>
+              <p class="hint">Let others scan this to connect with you</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Identity/Profile Modal -->
+      <div id="identity-modal" class="modal hidden">
+        <div class="modal-content modal-large">
+          <div class="modal-header">
+            <h3>Settings & Profile</h3>
+            <button class="btn-icon" onclick="closeIdentityModal()">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="profile-tabs">
+              <button class="tab-btn active" data-tab="profile">
+                <span>👤</span> Profile
+              </button>
+              <button class="tab-btn" data-tab="keys">
+                <span>🔑</span> Keys
+              </button>
+              <button class="tab-btn" data-tab="proofs">
+                <span>🔍</span> Proofs
+              </button>
+              <button class="tab-btn" data-tab="state">
+                <span>🌳</span> State
+              </button>
+              <button class="tab-btn" data-tab="account">
+                <span>⚙️</span> Account
+              </button>
+            </div>
+            
+            <!-- Profile Tab -->
+            <div class="tab-content active" id="profile-tab">
+              <div class="profile-section">
+                <div class="profile-header">
+                  <div class="profile-avatar-large" id="profile-avatar"></div>
+                  <div class="profile-info">
+                    <h4>Your Identity</h4>
+                    <div class="status-badge-large success">✅ Active</div>
+                  </div>
+                </div>
+                
+                <div class="info-card">
+                  <div class="info-label">
+                    <span>Identity Hash</span>
+                    <span class="info-hint" title="Your unique identifier derived from your cryptographic key">ℹ️</span>
+                  </div>
+                  <div class="info-value">
+                    <code class="code-block" id="profile-identity-hash"></code>
+                    <button class="btn-copy" onclick="copyProfileHash()" title="Copy to clipboard">📋</button>
+                  </div>
+                </div>
+                
+                <div class="info-card">
+                  <div class="info-label">Created</div>
+                  <div class="info-value">
+                    <span id="profile-created">-</span>
+                  </div>
+                </div>
+                
+                <div class="info-card">
+                  <div class="info-label">Active Conversations</div>
+                  <div class="info-value">
+                    <span id="profile-thread-count">0</span> <span class="text-muted">threads</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Keys Tab -->
+            <div class="tab-content" id="keys-tab">
+              <div class="keys-section">
+                <div class="section-header">
+                  <h4>Cryptographic Keys</h4>
+                  <p class="section-description">Your ED25519 keypair for signing and encryption</p>
+                </div>
+                
+                <div class="info-card">
+                  <div class="info-label">
+                    <span>Key Type</span>
+                    <span class="info-hint" title="ED25519 is a modern, fast, and secure signature algorithm">ℹ️</span>
+                  </div>
+                  <div class="info-value">
+                    <span>ED25519 (Deterministic from seed)</span>
+                  </div>
+                </div>
+                
+                <div class="info-card">
+                  <div class="info-label">
+                    <span>Public Key</span>
+                    <span class="info-hint" title="Share this key to allow others to verify your messages">ℹ️</span>
+                  </div>
+                  <div class="info-value">
+                    <code class="code-block" id="profile-public-key"></code>
+                    <button class="btn-copy" onclick="copyPublicKey()" title="Copy to clipboard">📋</button>
+                  </div>
+                </div>
+                
+                <div class="info-card">
+                  <div class="info-label">Key Format</div>
+                  <div class="info-value">
+                    <span>Hex encoded</span>
+                  </div>
+                </div>
+                
+                <div class="info-card">
+                  <div class="info-label">Signature Algorithm</div>
+                  <div class="info-value">
+                    <span>ED25519-SHA512</span>
+                  </div>
+                </div>
+                
+                <div class="security-note">
+                  <strong>🔒 Security Note:</strong> Your private key is stored locally and never sent to the server. Keep it secure!
+                </div>
+              </div>
+            </div>
+            
+            <!-- Proofs Tab -->
+            <div class="tab-content" id="proofs-tab">
+              <div class="proofs-section">
+                <div class="section-header">
+                  <h4>Zero-Knowledge Proofs</h4>
+                  <p class="section-description">ZK proofs verify message integrity without revealing content</p>
+                </div>
+                
+                <div class="info-card">
+                  <div class="info-label">
+                    <span>Proof Type</span>
+                    <span class="info-hint" title="CFC (Commitment Function Circuit) proofs from Psy Protocol">ℹ️</span>
+                  </div>
+                  <div class="info-value">
+                    <span>Psy Protocol CFC (plonky2-hwa ready)</span>
+                  </div>
+                </div>
+                
+                <div class="info-card">
+                  <div class="info-label">Last Proof Status</div>
+                  <div class="info-value">
+                    <span id="profile-proof-status" class="status-badge-large success">✅ Verified</span>
+                  </div>
+                </div>
+                
+                <div class="info-card">
+                  <div class="info-label">
+                    <span>CFC Fingerprint</span>
+                    <span class="info-hint" title="Unique identifier for the proof circuit">ℹ️</span>
+                  </div>
+                  <div class="info-value">
+                    <code class="code-block" id="profile-cfc-fp">0xdeadbeefcafebabe</code>
+                  </div>
+                </div>
+                
+                <div class="info-card">
+                  <div class="info-label">Proof Verification</div>
+                  <div class="info-value">
+                    <span class="status-badge-large success">✅ Verified</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- State Tab -->
+            <div class="tab-content" id="state-tab">
+              <div class="state-section">
+                <div class="section-header">
+                  <h4>Contract State (CSTATE)</h4>
+                  <p class="section-description">Merkle tree root representing your encrypted local state</p>
+                </div>
+                
+                <div class="info-card">
+                  <div class="info-label">
+                    <span>Current CSTATE Root</span>
+                    <span class="info-hint" title="Root hash of your state Merkle tree">ℹ️</span>
+                  </div>
+                  <div class="info-value">
+                    <code class="code-block" id="profile-cstate-root">-</code>
+                    <button class="btn-copy" onclick="copyCStateRoot()" title="Copy to clipboard">📋</button>
+                  </div>
+                </div>
+                
+                <div class="info-card">
+                  <div class="info-label">Active Threads</div>
+                  <div class="info-value">
+                    <span id="profile-thread-count-state">0</span> <span class="text-muted">conversations</span>
+                  </div>
+                </div>
+                
+                <div class="info-card">
+                  <div class="info-label">State Type</div>
+                  <div class="info-value">
+                    <span>Merkle Tree (Poseidon hashing)</span>
+                  </div>
+                </div>
+                
+                <div class="info-card">
+                  <div class="info-label">Commitment Algorithm</div>
+                  <div class="info-value">
+                    <span>Poseidon2</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Account Tab -->
+            <div class="tab-content" id="account-tab">
+              <div class="account-section">
+                <div class="section-header">
+                  <h4>Account Management</h4>
+                  <p class="section-description">Manage your identity and account settings</p>
+                </div>
+                
+                <div class="action-card">
+                  <div class="action-header">
+                    <h5>Create New Identity</h5>
+                    <p>Generate a new identity with a fresh keypair. This will replace your current identity.</p>
+                  </div>
+                  <button class="btn btn-secondary" onclick="showCreateNewIdentityConfirm()">
+                    🔄 Create New Identity
+                  </button>
+                </div>
+                
+                <div class="action-card warning">
+                  <div class="action-header">
+                    <h5>⚠️ Important</h5>
+                    <p>Creating a new identity will:</p>
+                    <ul>
+                      <li>Generate a new keypair and identity hash</li>
+                      <li>You'll lose access to previous conversations</li>
+                      <li>Others won't be able to message your old identity</li>
+                    </ul>
+                  </div>
+                </div>
+                
+                <div class="action-card">
+                  <div class="action-header">
+                    <h5>Export Identity</h5>
+                    <p>Download your identity information for backup</p>
+                  </div>
+                  <button class="btn btn-secondary" onclick="exportIdentity()">
+                    💾 Export Identity
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Create New Identity Confirmation Modal -->
+      <div id="confirm-new-identity-modal" class="modal hidden">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>⚠️ Create New Identity?</h3>
+            <button class="btn-icon" onclick="closeConfirmNewIdentity()">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="warning-box">
+              <p><strong>This action cannot be undone!</strong></p>
+              <p>Creating a new identity will:</p>
+              <ul>
+                <li>Generate a completely new keypair</li>
+                <li>Create a new identity hash</li>
+                <li>You'll lose access to all current conversations</li>
+                <li>Others won't be able to reach you at your old identity</li>
+                <li>All local data will be cleared</li>
+              </ul>
+              <p><strong>Are you sure you want to continue?</strong></p>
+            </div>
+            <div class="modal-actions">
+              <button class="btn btn-secondary" onclick="closeConfirmNewIdentity()">Cancel</button>
+              <button class="btn btn-danger" onclick="confirmCreateNewIdentity()">Yes, Create New Identity</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
