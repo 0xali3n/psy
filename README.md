@@ -2,8 +2,6 @@
 
 **Leveraging Psy Protocol's zero-knowledge proofs for decentralized messaging with absolute privacy.**
 
-**Project ID:** #1556718
-
 > **Note:** This project is an MVP prototype. ZK proof generation and Poseidon2 hashing are simulated with drop-in replacements ready for production Psy Protocol integration.
 
 ---
@@ -19,7 +17,7 @@
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/0xali3n/psy
 cd psy
 
 # Build the project
@@ -37,22 +35,6 @@ Open browser: **http://127.0.0.1:8080**
 2. **Browser B:** Create identity, connect using Browser A's hash
 3. **Send Message:** Type message, verify ZK proof status
 4. **Verify:** Check console (F12) and server terminal
-
----
-
-## 🎬 Demo Video Script (30-40 seconds)
-
-**Step 1 (5s):** "ZeroTrace is an end-to-end encrypted messaging DApp built on Psy Protocol."
-
-**Step 2 (10s):** "I'll create two identities in separate browsers. Notice the identity hash is generated from an ED25519 keypair."
-
-**Step 3 (10s):** "Now I'll connect them and send an encrypted message. Watch the ZK proof status indicator - it shows the CFC proof being generated and verified."
-
-**Step 4 (10s):** "The message appears decrypted on the recipient side. All encryption happens client-side, and only commitments are visible to the server."
-
-**Step 5 (5s):** "ZeroTrace demonstrates scalable, privacy-preserving messaging with Psy Protocol's zero-knowledge architecture."
-
----
 
 ## ✅ How This Meets Hackathon Requirements
 
