@@ -208,7 +208,10 @@ function openNewChatModal() {
     return;
   }
   document.getElementById("new-chat-modal").classList.remove("hidden");
-  generateQRCode(currentIdentity.identityHash);
+  // Small delay to ensure modal is visible before generating QR
+  setTimeout(() => {
+    generateQRCode(currentIdentity.identityHash);
+  }, 100);
 }
 
 function closeNewChatModal() {
@@ -573,13 +576,44 @@ function displayProofStatus(data) {
 
 function generateQRCode(data) {
   const canvas = document.getElementById("qr-code");
-  if (!canvas) return;
-
-  if (typeof QRCode === "undefined") {
-    console.error("QRCode library not loaded");
+  if (!canvas) {
+    console.error("QR code canvas not found");
     return;
   }
 
+  // Wait for QRCode library to load (with multiple retries)
+  if (typeof QRCode === "undefined") {
+    console.warn("QRCode library not loaded, retrying...");
+    // Try up to 5 times
+    if (!generateQRCode.retryCount) generateQRCode.retryCount = 0;
+    if (generateQRCode.retryCount < 5) {
+      generateQRCode.retryCount++;
+      setTimeout(() => generateQRCode(data), 300);
+      return;
+    } else {
+      console.error("QRCode library failed to load after retries");
+      showQRFallback(canvas, data);
+      return;
+    }
+  }
+  
+  // Reset retry count on success
+  generateQRCode.retryCount = 0;
+
+  const container = canvas.parentElement;
+  
+  // Clear any existing fallback
+  const existingFallback = container.querySelector(".qr-fallback");
+  if (existingFallback) {
+    existingFallback.remove();
+  }
+
+  // Clear canvas first
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  canvas.style.display = "block";
+
+  // Generate QR code
   QRCode.toCanvas(
     canvas,
     data,
@@ -590,15 +624,61 @@ function generateQRCode(data) {
         dark: "#1e293b",
         light: "#FFFFFF",
       },
+      errorCorrectionLevel: "M",
     },
     (err) => {
       if (err) {
         console.error("QR generation error:", err);
+        // Fallback: show text if QR fails
+        canvas.style.display = "none";
+        if (container && !container.querySelector(".qr-fallback")) {
+          const fallback = document.createElement("div");
+          fallback.className = "qr-fallback";
+          fallback.innerHTML = `
+            <p style="margin-bottom: 8px; font-weight: 600;">Identity Hash:</p>
+            <code style="word-break: break-all; font-size: 0.85em;">${data}</code>
+            <p style="margin-top: 12px; font-size: 0.85em; color: var(--text-muted);">Copy this to share your identity</p>
+          `;
+          fallback.style.padding = "20px";
+          fallback.style.background = "#f8fafc";
+          fallback.style.borderRadius = "8px";
+          fallback.style.fontFamily = "monospace";
+          fallback.style.fontSize = "0.9em";
+          fallback.style.border = "1px solid var(--border)";
+          container.appendChild(fallback);
+        }
       } else {
-        console.log("✅ QR code generated");
+        console.log("✅ QR code generated successfully");
+        canvas.style.display = "block";
+        // Hide any fallback
+        const fallback = container.querySelector(".qr-fallback");
+        if (fallback) fallback.remove();
       }
     }
   );
+}
+
+function showQRFallback(canvas, data) {
+  const container = canvas.parentElement;
+  if (!container) return;
+  
+  canvas.style.display = "none";
+  if (!container.querySelector(".qr-fallback")) {
+    const fallback = document.createElement("div");
+    fallback.className = "qr-fallback";
+    fallback.innerHTML = `
+      <div style="padding: 20px; text-align: center;">
+        <p style="margin-bottom: 12px; font-weight: 600; color: var(--text);">Identity Hash:</p>
+        <code style="word-break: break-all; font-size: 0.85em; color: var(--primary); display: block; padding: 12px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border);">${data}</code>
+        <p style="margin-top: 12px; font-size: 0.85em; color: var(--text-muted);">Copy this to share your identity</p>
+        <button onclick="navigator.clipboard.writeText('${data}'); showToast('Copied!', 'success');" 
+                style="margin-top: 12px; padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer;">
+          📋 Copy Hash
+        </button>
+      </div>
+    `;
+    container.appendChild(fallback);
+  }
 }
 
 function loadConversations() {

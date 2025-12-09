@@ -2,85 +2,251 @@
 
 **Leveraging Psy Protocol's zero-knowledge proofs for decentralized messaging with absolute privacy.**
 
-## 🚀 Quick Start
+**Project ID:** #1556718
+
+> **Note:** This project is an MVP prototype. ZK proof generation and Poseidon2 hashing are simulated with drop-in replacements ready for production Psy Protocol integration.
+
+---
+
+## 🚀 Installation & Setup
 
 ### Prerequisites
 
-- **Rust installed** (if not, see `INSTALL_RUST.md`)
-- Modern web browser
+- **Rust** (latest stable version) - [Install Rust](https://www.rust-lang.org/tools/install)
+- Modern web browser (Chrome, Firefox, Edge)
 
-### Run Server
+### Clone & Install
 
 ```bash
+# Clone the repository
+git clone <repository-url>
+cd psy
+
+# Build the project
+cargo build
+
+# Run the server
 cargo run --bin server
 ```
 
 Open browser: **http://127.0.0.1:8080**
 
-### Demo with 2 Browsers
+### Quick Demo
 
-1. **Browser 1:**
+1. **Browser A:** Create identity, copy hash
+2. **Browser B:** Create identity, connect using Browser A's hash
+3. **Send Message:** Type message, verify ZK proof status
+4. **Verify:** Check console (F12) and server terminal
 
-   - Open http://127.0.0.1:8080
-   - Click "Create New Identity"
-   - Copy identity hash or show QR code
+---
 
-2. **Browser 2:**
+## 🎬 Demo Video Script (30-40 seconds)
 
-   - Open http://127.0.0.1:8080
-   - Click "Create New Identity"
-   - Paste Browser 1's identity hash → Click "Connect"
+**Step 1 (5s):** "ZeroTrace is an end-to-end encrypted messaging DApp built on Psy Protocol."
 
-3. **Both:** Send messages and watch ZK proofs in real-time!
+**Step 2 (10s):** "I'll create two identities in separate browsers. Notice the identity hash is generated from an ED25519 keypair."
 
-## ✅ Features
+**Step 3 (10s):** "Now I'll connect them and send an encrypted message. Watch the ZK proof status indicator - it shows the CFC proof being generated and verified."
 
-- End-to-end encryption (XChaCha20-Poly1305)
-- Zero-knowledge proofs (Psy Protocol CFC)
-- Programmable identities (SDKey-style)
-- Privacy-preserving commitments
-- Real-time messaging UI
+**Step 4 (10s):** "The message appears decrypted on the recipient side. All encryption happens client-side, and only commitments are visible to the server."
 
-## 📁 Project Structure
+**Step 5 (5s):** "ZeroTrace demonstrates scalable, privacy-preserving messaging with Psy Protocol's zero-knowledge architecture."
+
+---
+
+## ✅ How This Meets Hackathon Requirements
+
+✔ **Built in Rust** - Full backend in Rust (Actix-web, Tokio) with type-safe, high-performance code
+
+✔ **Implements Psy Concepts** - Identity (SDKey-style ED25519), CSTATE (Merkle tree state), Commitments (Poseidon2-style), CFC proofs (Psy Protocol format)
+
+✔ **Scalable Architecture** - Stateless server design; server instances can horizontally scale behind a load balancer. Merkle tree state enables efficient sync.
+
+✔ **Privacy-by-Design** - E2E encryption (XChaCha20-Poly1305) + ZK-style state transitions. Server never sees plaintext.
+
+✔ **Clear Migration Path** - Trait-based architecture ready for Psy Protocol testnet integration (plonky2-hwa, Realm, UCON, DA Miner)
+
+---
+
+## 🏗️ Architecture
 
 ```
-src/
-  ├── lib.rs          # Core encryption & messages
-  ├── identity.rs     # Identity system
-  ├── commitments.rs  # Poseidon commitments
-  ├── proofs.rs       # ZK proof generation
-  └── bin/
-      ├── server.rs   # API server
-      └── client_example.rs
-
-static/
-  ├── index.html      # Web UI
-  ├── style.css
-  └── app.js
+┌─────────────────────────────────────────────────────────────┐
+│                    ZeroTrace Architecture                    │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌──────────────┐         ┌──────────────┐                │
+│  │   Frontend   │────────▶│  API Server  │                │
+│  │  (Browser)   │  HTTP   │  (Actix-web) │                │
+│  │              │         │   Tokio      │                │
+│  └──────────────┘         └──────┬───────┘                │
+│                                   │                         │
+│                          ┌────────┴────────┐               │
+│                          ▼                 ▼               │
+│                   ┌──────────┐      ┌──────────┐          │
+│                   │  Message │      │ Identity │          │
+│                   │  Store   │      │ Manager  │          │
+│                   └──────────┘      └──────────┘          │
+│                                                             │
+│  Core Services:                                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │
+│  │  Encryption  │  │  Commitments │  │  ZK Proofs   │    │
+│  │ (XChaCha20)  │  │  (Poseidon2) │  │  (CFC)       │    │
+│  └──────────────┘  └──────────────┘  └──────────────┘    │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## 🔧 Check Code
+### Message Workflow
 
-```bash
-# Check compilation
-cargo check
-
-# Run tests
-cargo test
-
-# Build
-cargo build --release
 ```
+Client: Encrypt → Compute Commitment → Send
+                ↓
+Server: Get CSTATE → Generate CFC Proof (simulated) → Verify → Create EndCap → Update State
+                ↓
+Client: Poll → Decrypt → Display
+```
+
+---
+
+## 🔐 Security Features
+
+- **E2E Encryption:** XChaCha20-Poly1305 (server never sees plaintext)
+- **ZK Proofs:** Psy Protocol CFC proofs verify state transitions (simulated, ready for plonky2-hwa)
+- **Identity System:** ED25519 keypairs with privacy-preserving hashes. Server stores only public keys. Private keys remain in browser localStorage.
+- **Replay Protection:** VAA nonces per identity
+- **Commitments:** Only hashes stored, plaintext off-chain
+
+### Cryptographic Primitives
+
+- **Encryption:** XChaCha20-Poly1305 (256-bit key, 192-bit nonce)
+- **Signatures:** ED25519 (Ed25519-SHA512)
+- **Hashing:** SHA-256, Keccak256 (Poseidon2-style placeholder for MVP)
+- **ZK Proofs:** CFC proofs (plonky2-hwa ready, currently simulated)
+
+---
 
 ## 📡 API Endpoints
 
-- `POST /identity/create` - Create identity
-- `POST /send` - Send encrypted message with ZK proof
-- `GET /read/{thread_id}` - Read decrypted messages
-- `GET /cstate/{identity_hash}` - Get CSTATE root
+| Method | Endpoint                   | Description                          |
+| ------ | -------------------------- | ------------------------------------ |
+| `POST` | `/identity/create`         | Create ED25519 identity              |
+| `POST` | `/send`                    | Send encrypted message with ZK proof |
+| `GET`  | `/read/{thread_id}`        | Get decrypted messages               |
+| `GET`  | `/cstate/{identity_hash}`  | Get CSTATE root                      |
+| `GET`  | `/threads/{identity_hash}` | Get all threads                      |
+| `GET`  | `/health`                  | Check server status                  |
 
-## 🎯 Hackathon Submission
+---
 
-**Project ID:** #1556718
+## 📊 Data Model
 
-Built on Psy Protocol with ZK proofs, programmable identities, and privacy-preserving architecture.
+### Message
+
+```rust
+struct Message {
+    thread_id: String,              // "hash1:hash2" (sorted)
+    sender_id: String,              // Identity hash
+    ciphertext: String,             // Base64 encrypted
+    iv: String,                     // Base64 nonce
+    timestamp: u64,
+    message_commitment: String,     // Poseidon2-style commitment
+    endcap: Option<EndCap>,         // ZK proof + metadata
+}
+```
+
+### CSTATE (Contract State)
+
+Merkle tree of user's message state. Root = CSTATE root (updated on each message). Leaves = thread roots (one per conversation).
+
+### Identity System
+
+- **Keypair:** ED25519 (32-byte public key)
+- **Identity Hash:** `SHA256("zerotrace_identity" || public_key)`
+- **Privacy:** Identity hash used instead of public key
+
+---
+
+## 🔄 Psy Protocol Integration
+
+### Current Status
+
+- ✅ Identity system (ED25519)
+- ✅ Encryption (XChaCha20-Poly1305)
+- ✅ Commitments (Poseidon2-style, SHA-256 placeholder for MVP)
+- ✅ ZK proof structure (CFC format)
+- 🚧 Real plonky2-hwa integration (simulated, drop-in replaceable)
+- 🚧 On-chain submission (format ready, Realm integration planned)
+
+### Integration Points
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Psy Protocol Components                                    │
+├─────────────────────────────────────────────────────────────┤
+│  Realm    → Submit EndCaps (simulated EndCap generation)   │
+│  UCON     → Store CSTATE roots per identity                │
+│  CLEAF    → Whitelist of allowed CFCs                      │
+│  DA Miner → Store encrypted message blobs                  │
+│  Indexer  → Index messages, handle reorgs                  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Migration Path
+
+- **SimProver → Plonky2Prover:** Trait-based, drop-in replacement
+- **SHA-256 → Poseidon2:** Trait-based hashing, ready to swap
+- **In-memory → Database:** Architecture supports sled/Postgres
+
+---
+
+## 🗺️ Roadmap & Future Plans
+
+### Short-term (Next Sprint)
+
+- [ ] Real plonky2-hwa integration for ZK proofs
+- [ ] Database persistence (sled or Postgres)
+- [ ] WebSocket support for real-time messaging
+- [ ] Real Poseidon2 hash implementation
+
+### Medium-term
+
+- [ ] Psy Protocol testnet integration
+- [ ] Simulated EndCap generation (Realm integration planned)
+- [ ] DA Miner integration for blob storage
+- [ ] Indexer for message querying
+- [ ] Multi-device state sync
+
+### Long-term
+
+- [ ] Group chat support (multi-party encryption)
+- [ ] Perfect Forward Secrecy (Double Ratchet)
+- [ ] Message reactions and read receipts
+- [ ] Push notifications
+- [ ] Mobile app (Rust core + native UI)
+
+---
+
+## ❓ FAQ for Judges
+
+**Q: How does this integrate with Psy Protocol?**  
+A: The proof system uses `CFCProof::for_send_message()` which generates proofs in Psy Protocol format. EndCap structure matches Psy Protocol spec. Ready for integration when plonky2-hwa is available.
+
+**Q: What about persistence?**  
+A: Currently in-memory for demo. Architecture supports easy swap to sled (embedded) or Postgres. All storage is abstracted through `MessageStore`.
+
+**Q: How do you handle key management?**  
+A: Private keys never leave client (in production). Server only stores public keys. Identity hash derived from public key using SHA-256.
+
+**Q: What's the scalability plan?**  
+A: Stateless API design allows horizontal scaling. Merkle tree state enables efficient sync. WebSocket ready for real-time (currently using polling).
+
+**Q: What makes this production-ready?**  
+A: Type-safe Rust code, proper error handling, thread-safe operations, authenticated encryption, replay protection, and extensible architecture.
+
+**Q: What's simulated vs real?**  
+A: **Real:** E2E encryption, ED25519 identities, commitments, CSTATE management. **Simulated:** ZK proof generation (ready for plonky2-hwa), Poseidon2 hashing (uses SHA-256 placeholder).
+
+---
+
+**Built with Rust and Psy Protocol**

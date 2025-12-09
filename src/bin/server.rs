@@ -12,10 +12,19 @@ use zerotrace::{
 use chacha20poly1305::XNonce;
 use base64::{Engine as _, engine::general_purpose};
 use hex;
+use uuid;
 
 type AppState = web::Data<Mutex<MessageStore>>;
 type IdentityState = web::Data<Mutex<std::collections::HashMap<String, IdentityManager>>>;
 
+/// Send an encrypted message with ZK proof
+/// 
+/// This endpoint:
+/// 1. Encrypts the message using XChaCha20-Poly1305
+/// 2. Generates a message commitment
+/// 3. Creates a ZK proof for the state transition
+/// 4. Updates the CSTATE root
+/// 5. Stores the encrypted message
 async fn send_message(
     req: web::Json<SendRequest>,
     state: AppState,
@@ -118,6 +127,7 @@ async fn send_message(
     })))
 }
 
+/// Get encrypted messages for a thread
 async fn get_messages(
     path: web::Path<String>,
     state: AppState,
@@ -131,6 +141,8 @@ async fn get_messages(
     }
 }
 
+/// Decrypt and read messages for a thread
+/// Returns decrypted plaintext messages with metadata
 async fn decrypt_and_read(
     path: web::Path<String>,
     state: AppState,
@@ -172,6 +184,8 @@ async fn decrypt_and_read(
     Ok(HttpResponse::Ok().json(decrypted))
 }
 
+/// Create a new ED25519 identity
+/// Returns identity hash and public key
 async fn create_identity(
     identity_state: IdentityState,
 ) -> Result<HttpResponse> {
@@ -193,6 +207,7 @@ async fn create_identity(
     })))
 }
 
+/// Get CSTATE root and thread roots for an identity
 async fn get_cstate(identity_hash: web::Path<String>, state: AppState) -> Result<HttpResponse> {
     let store = state.lock().unwrap();
     let hash = identity_hash.into_inner();
@@ -206,6 +221,8 @@ async fn get_cstate(identity_hash: web::Path<String>, state: AppState) -> Result
     })))
 }
 
+/// Get all threads (conversations) for an identity
+/// Returns list of threads with last message info
 async fn get_threads_for_identity(
     path: web::Path<String>,
     state: AppState,
@@ -248,6 +265,20 @@ async fn get_threads_for_identity(
     Ok(HttpResponse::Ok().json(threads))
 }
 
+async fn health_check() -> Result<HttpResponse> {
+    Ok(HttpResponse::Ok().json(json!({
+        "status": "healthy",
+        "service": "zerotrace",
+        "version": "1.0.0",
+        "features": {
+            "encryption": "XChaCha20-Poly1305",
+            "identity": "ED25519",
+            "zk_proofs": "Psy Protocol CFC",
+            "commitments": "Poseidon2-style"
+        }
+    })))
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let store = web::Data::new(Mutex::new(MessageStore::new()));
@@ -264,6 +295,7 @@ async fn main() -> std::io::Result<()> {
     println!("  GET  /read/{{thread_id}} - Read decrypted messages");
     println!("  GET  /cstate/{{identity_hash}} - Get CSTATE root");
     println!("  GET  /threads/{{identity_hash}} - Get all threads for identity");
+    println!("  GET  /health - Health check endpoint");
     
     HttpServer::new(move || {
         let cors = Cors::default()
@@ -283,6 +315,7 @@ async fn main() -> std::io::Result<()> {
             .route("/read/{thread_id}", web::get().to(decrypt_and_read))
             .route("/cstate/{identity_hash}", web::get().to(get_cstate))
             .route("/threads/{identity_hash}", web::get().to(get_threads_for_identity))
+            .route("/health", web::get().to(health_check))
             .service(Files::new("/", "./static").index_file("index.html"))
     })
     .bind("127.0.0.1:8080")?

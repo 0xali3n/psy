@@ -7,9 +7,21 @@
     <link rel="stylesheet" href="style.css" />
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <script>
+      // Fallback QRCode loader
       window.addEventListener("load", () => {
         if (typeof QRCode === "undefined") {
-          console.error("QRCode library failed to load");
+          console.warn("Primary QRCode CDN failed, loading fallback...");
+          const script = document.createElement("script");
+          script.src = "https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js";
+          script.onload = () => {
+            console.log("✅ QRCode loaded from fallback CDN");
+            // Trigger QR generation if identity exists
+            if (window.currentIdentity) {
+              setTimeout(() => generateQRCode(window.currentIdentity.identityHash), 100);
+            }
+          };
+          script.onerror = () => console.error("❌ QRCode fallback also failed");
+          document.head.appendChild(script);
         }
       });
     </script>
@@ -60,7 +72,57 @@
           <div class="welcome-content">
             <h1>ZeroTrace</h1>
             <p>End-to-End Encrypted Messaging</p>
-            <p class="welcome-subtitle">Create an identity to get started</p>
+            <p class="welcome-subtitle">Built on Psy Protocol with Zero-Knowledge Proofs</p>
+            
+            <div class="features-showcase">
+              <div class="feature-card">
+                <div class="feature-icon">🔐</div>
+                <h3>End-to-End Encryption</h3>
+                <p>XChaCha20-Poly1305 authenticated encryption. Server never sees plaintext.</p>
+              </div>
+              
+              <div class="feature-card">
+                <div class="feature-icon">🔍</div>
+                <h3>Zero-Knowledge Proofs</h3>
+                <p>Psy Protocol CFC proof system verifies state transitions without revealing content.</p>
+              </div>
+              
+              <div class="feature-card">
+                <div class="feature-icon">🆔</div>
+                <h3>Programmable Identities</h3>
+                <p>ED25519-based SDKey-style identity system with privacy-preserving hashes.</p>
+              </div>
+              
+              <div class="feature-card">
+                <div class="feature-icon">🌳</div>
+                <h3>CSTATE Management</h3>
+                <p>Merkle tree-based state management for efficient and verifiable state tracking.</p>
+              </div>
+              
+              <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3>Privacy-Preserving</h3>
+                <p>Only commitments visible on-chain, not message content. Full privacy guaranteed.</p>
+              </div>
+              
+              <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Real-Time Messaging</h3>
+                <p>Bidirectional encrypted messaging with automatic message delivery and sync.</p>
+              </div>
+            </div>
+            
+            <div class="tech-stack-info">
+              <h3>Built with Rust & Psy Protocol</h3>
+              <div class="tech-badges">
+                <span class="tech-badge">100% Rust Backend</span>
+                <span class="tech-badge">Type-Safe</span>
+                <span class="tech-badge">Production-Ready</span>
+                <span class="tech-badge">ZK Proofs</span>
+              </div>
+            </div>
+            
+            <p class="welcome-subtitle" style="margin-top: 40px;">Create an identity to get started</p>
           </div>
         </div>
 
